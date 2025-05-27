@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { compileX } from "../libs/";
-import { POOL_TYPES, preprocBuildContractsLocal } from "./helpers";
+import { POOL_TYPES, preprocBuildContractsLocal, defaultACoeff, defaultBCoeff, defaultBaseUSDRate, defautlCurvePT } from "./helpers";
 
 (async () => {
     let autocleanup = undefined;
@@ -9,13 +9,20 @@ import { POOL_TYPES, preprocBuildContractsLocal } from "./helpers";
 
     for (let tp of POOL_TYPES) {
         console.log(`Building for pool type: ${tp}`);
-        preprocBuildContractsLocal({
+        let ops = {
             dexType: tp,
             defaultProtocolFee: null,
             defaultIsLocked: null,
             defaultLPFee: null,
             autocleanup: autocleanup,
-        });
+        };
+        if (tp == "bonding_curve") {
+            ops.defaultExpACoeff = defaultACoeff;
+            ops.defaultExpBCoeff = defaultBCoeff;
+            ops.defaultBaseUSDRate = defaultBaseUSDRate;
+            ops.defaultCTokenForCurve = defautlCurvePT;
+        }
+        preprocBuildContractsLocal(ops);
 
         console.log("\tCompiling Router...");
         await compileX('Router', {
