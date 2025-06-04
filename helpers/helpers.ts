@@ -69,21 +69,19 @@ export async function getLpAccDataNoFail(lpAcc: SandboxContract<LPAccount>) {
 }
 
 
-export function preprocBuildContractsLocal(opts: {
-    dexType: ElementType<typeof POOL_TYPES>,
-    defaultIsLocked: Number | null,
-    defaultLPFee: Number | null,
-    defaultProtocolFee: Number | null,
-    autocleanup?: boolean,
-}): void {
+export function preprocBuildContractsLocal(opts: any): void {
     process.env.DEX_TYPE = opts.dexType
     let data = opts;
     data.defaultIsLocked = opts.defaultIsLocked == null ? 0 : 1;
     data.defaultLPFee = opts.defaultLPFee == null ? 20 : opts.defaultLPFee;
     data.defaultProtocolFee = opts.defaultProtocolFee == null ? 10 : opts.defaultProtocolFee;
-    data.calcExpACoeffSize = opts.defaultExpACoeff.toString(2).length;
-    data.calcExpBCoeffSize = opts.defaultExpBCoeff.toString(2).length;
-    data.calcBaseUSDRateSize = opts.defaultBaseUSDRate.toString(2).length;
+    data.calcExpACoeffSize = 0; // opts.defaultExpACoeff?.toString(2)?.length;
+    data.defaultExpACoeff = 0;
+    data.calcExpBCoeffSize = 0; // opts.defaultExpBCoeff?.toString(2)?.length;
+    data.defaultExpBCoeff = 0;
+    data.calcBaseUSDRateSize = 0; // opts.defaultBaseUSDRate?.toString(2)?.length;
+    data.defaultBaseUSDRate = 0;
+    data.defaultCTokenForCurve = 0;
     data.version = parseVersion();
     data.renderRouterAdminExtCalls = fs.existsSync(`contracts/router/pools/${opts.dexType}/ext_admin.fc`);
     data.renderPoolExtRouterCalls = fs.existsSync(`contracts/pool/pools/${opts.dexType}/ext_router.fc`);

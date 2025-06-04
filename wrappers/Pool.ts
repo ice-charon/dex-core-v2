@@ -953,7 +953,6 @@ export function poolBciStorageParser(src: Cell) {
 }
 
 export class PoolBCI extends PoolBase {
-    private
     constructor(readonly address: Address, readonly init?: { code: Cell; data: Cell; }) {
         super(poolOpcodes, address, init)
     }

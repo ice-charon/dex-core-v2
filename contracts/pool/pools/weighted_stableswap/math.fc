@@ -4,7 +4,7 @@ const int __MAX_ITERATIONS = 255;
 ;; custom erros
 const error::compliment_out_of_range = 51002;
 const error::not_converge = 5103;
-const error::df_zero = 5104;
+;; const error::df_zero = 5104;
 
 (int) _invariant(int x, int y, int _p, int _q) inline {
     x = math::fp::from(x);
