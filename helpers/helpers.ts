@@ -78,9 +78,9 @@ export function preprocBuildContractsLocal(opts: {
 }): void {
     process.env.DEX_TYPE = opts.dexType
     let data = opts;
-    data.defaultIsLocked = opts.defaultIsLocked == null ? "0" : "1";
-    data.defaultLPFee = opts.defaultLPFee == null ? "20" : opts.defaultLPFee;
-    data.defaultProtocolFee = opts.defaultProtocolFee == null ? "10" : opts.defaultProtocolFee;
+    data.defaultIsLocked = opts.defaultIsLocked == null ? 0 : 1;
+    data.defaultLPFee = opts.defaultLPFee == null ? 20 : opts.defaultLPFee;
+    data.defaultProtocolFee = opts.defaultProtocolFee == null ? 10 : opts.defaultProtocolFee;
     data.calcExpACoeffSize = opts.defaultExpACoeff.toString(2).length;
     data.calcExpBCoeffSize = opts.defaultExpBCoeff.toString(2).length;
     data.calcBaseUSDRateSize = opts.defaultBaseUSDRate.toString(2).length;

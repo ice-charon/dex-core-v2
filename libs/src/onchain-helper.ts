@@ -73,6 +73,7 @@ export async function getSeqNo(provider: NetworkProvider, address: Address, trie
     return await runWithRetry(async () => {
         if (await provider.isContractDeployed(address)) {
             let client = provider.api();
+            const tonClient = client as TonClient;
             let runGetMethod: (method: string) => Promise<[TupleReader, number]>
             if (client instanceof TonClient4) {
                 runGetMethod = async (method: string) => { 
@@ -81,7 +82,7 @@ export async function getSeqNo(provider: NetworkProvider, address: Address, trie
                 }
             } else {
                 runGetMethod = async (method: string) => { 
-                    const res = await client.runMethod(address, method)
+                    const res = await tonClient.runMethod(address, method)
                     return [res.stack, 0] as const
                 }
             }
@@ -163,12 +164,13 @@ export async function getAccountBalance(provider: NetworkProvider, target: Addre
     const targetAddress = target instanceof Address ? target : target.address;
 
     let client = provider.api();
+    const tonClient = client as TonClient;
     let data: string | bigint;
 
     if (client instanceof TonClient4) {
         data = (await client.getAccountLite((await client.getLastBlock()).last.seqno, targetAddress)).account.balance.coins;
     } else {
-        data = await client.getBalance(targetAddress);
+        data = await tonClient.getBalance(targetAddress);
     }
 
     return BigInt(data);
@@ -236,11 +238,12 @@ export async function getAccountState(provider: NetworkProvider, target: Address
     const targetAddress = target instanceof Address ? target : target.address;
 
     let client = provider.api();
+    const tonClient = client as TonClient;
     let state: AccountState;
     if (client instanceof TonClient4) {
         state = (await client.getAccountLite((await client.getLastBlock()).last.seqno, targetAddress)).account.state.type;
     } else {
-        const resState = (await client.getContractState(targetAddress)).state;
+        const resState = (await tonClient.getContractState(targetAddress)).state;
         state = resState === "uninitialized" ? "uninit" : resState;
     }
 
@@ -280,10 +283,12 @@ export async function waitForDeploy(provider: NetworkProvider, target: Address |
 export async function getAccount(provider: NetworkProvider, target: Address | OpenedContract<Contract>) {
     const targetAddress = target instanceof Address ? target : target.address;
     let client = provider.api();
-    if (client instanceof TonClient) {
-        throw new Error("TonClient does not support this method")
+    if (!(client instanceof TonClient4)) {
+        throw new Error("Only TonClient4 supports getAccount");
     }
-    let data = await client.getAccount((await client.getLastBlock()).last.seqno, targetAddress)
+
+    const block = await client.getLastBlock();
+    const data = await client.getAccount(block.last.seqno, targetAddress);
 
     return {
         workchain: data.block.workchain,
@@ -292,12 +297,11 @@ export async function getAccount(provider: NetworkProvider, target: Address | Op
         state: data.account.state.type,
         balance: BigInt(data.account.balance.coins),
         storage: {
-            lastPaid: data.account.storageStat?.lastPaid ? data.account.storageStat.lastPaid : null,
+            lastPaid: data.account.storageStat?.lastPaid ?? null,
             duePayment: data.account.storageStat?.duePayment ? BigInt(data.account.storageStat.duePayment) : null,
-            bits: data.account.storageStat?.used.bits ? data.account.storageStat.used.bits : null,
-            cells: data.account.storageStat?.used.cells ? data.account.storageStat.used.cells : null,
-            publicCells: data.account.storageStat?.used.publicCells ? data.account.storageStat.used.publicCells : null,
+            bits: data.account.storageStat?.used.bits ?? null,
+            cells: data.account.storageStat?.used.cells ?? null,
+            publicCells: data.account.storageStat?.used.publicCells ?? null,
         }
-
     }
-} 
+}
