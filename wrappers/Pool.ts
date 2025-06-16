@@ -888,16 +888,17 @@ export class PoolStable extends PoolBase {
 
 }
 
-export const defautlCurvePT = 80n;
+export const defautlCurveT = 80n;
 export const defaultACoeff = 1105000000000n;
 export const defaultBCoeff = 7056000000n;
 export const defaultBaseUSDRate = 7000000000000000n;
 
-export function bciPoolConfigToCell(config: PoolConfig & { expACoeff?: bigint, expBCoeff?: bigint, baseUSDRate?: bigint, ctokenToCurvePT?: bigint }): Cell {
+export function bciPoolConfigToCell(config: PoolConfig & { expACoeff?: bigint, expBCoeff?: bigint, baseUSDRate?: bigint, ctokenToCurveT?: bigint, swapSide?: bigint }): Cell {
     let expACoeff = config.expACoeff ?? defaultACoeff;
     let expBCoeff = config.expBCoeff ?? defaultBCoeff;
     let baseUSDRate = config.baseUSDRate ?? defaultBaseUSDRate;
-    let ctokenToCurvePT = config.ctokenToCurvePT ?? defautlCurvePT;
+    let ctokenToCurveT = config.ctokenToCurveT ?? defautlCurveT;
+    let swapSide = config.swapSide ?? 1;
     return beginCell()
         .storeUint(1, 1)
         .storeCoins(config.leftReserve)
@@ -911,7 +912,8 @@ export function bciPoolConfigToCell(config: PoolConfig & { expACoeff?: bigint, e
         .storeUint(expACoeff, expACoeff.toString(2).length)
         .storeUint(expBCoeff, expBCoeff.toString(2).length)
         .storeUint(baseUSDRate, baseUSDRate.toString(2).length)
-        .storeUint(ctokenToCurvePT, 7)
+        .storeCoins(ctokenToCurveT)
+        .storeUint(swapSide, 1)
         .storeRef(beginCell()
             .storeAddress(config.routerAddress)
             .storeAddress(config.leftWalletAddress)
@@ -937,7 +939,8 @@ export function poolBciStorageParser(src: Cell) {
         expACoeff: ds.loadUintBig(defaultACoeff.toString(2).length), // in tests only, it's dynamically
         expBCoeff: ds.loadUintBig(defaultBCoeff.toString(2).length), // in tests only, it's dynamically
         baseUSDRate: ds.loadUintBig(defaultBaseUSDRate.toString(2).length), // in tests only, it's dynamically
-        ctokenToCurveCT: ds.loadUintBig(7),
+        ctokenToCurveT: ds.loadCoins(),
+        swapSide: ds.loadBoolean(),
         ...(() => {
             let ds_p = ds.loadRef().beginParse()
             return {
@@ -979,7 +982,8 @@ export class PoolBCI extends PoolBase {
             coefficientA: result.stack.readBigNumber(),
             coefficientB: result.stack.readBigNumber(),
             baseUSDRate: result.stack.readBigNumber(),
-            tokenCurvePT: result.stack.readBigNumber(),
+            tokenCurveT: result.stack.readBigNumber(),
+            swapSide: result.stack.readBoolean(),
         };
     }
 
@@ -1000,7 +1004,8 @@ export class PoolBCI extends PoolBase {
             coefficientA: defaultACoeff,
             coefficientB: defaultBCoeff,
             baseUSDRate: defaultBaseUSDRate,
-            tokenCurvePT: defautlCurvePT,
+            tokenCurveT: defautlCurveT,
+            swapSide: true,
         }
         try {
             data = await this.getPoolData(provider)
