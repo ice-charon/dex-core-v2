@@ -892,8 +892,10 @@ export const defautlCurveT = 80n;
 export const defaultACoeff = 1105000000000n;
 export const defaultBCoeff = 7056000000n;
 export const defaultBaseUSDRate = 7000000000000000n;
+export const defaultBCLPFee = 200n; // 2% in ION
+export const defaultBCProtocolFee = 5000n; // 50% in Creator token
 
-export function bciPoolConfigToCell(config: PoolConfig & { expACoeff?: bigint, expBCoeff?: bigint, baseUSDRate?: bigint, ctokenToCurveT?: bigint, swapSide?: bigint }): Cell {
+export function bciPoolConfigToCell(config: PoolConfig & { bclpFee?: bigint, bcprotocolFee?: bigint, expACoeff?: bigint, expBCoeff?: bigint, baseUSDRate?: bigint, ctokenToCurveT?: bigint, swapSide?: bigint }): Cell {
     let expACoeff = config.expACoeff ?? defaultACoeff;
     let expBCoeff = config.expBCoeff ?? defaultBCoeff;
     let baseUSDRate = config.baseUSDRate ?? defaultBaseUSDRate;
@@ -909,6 +911,8 @@ export function bciPoolConfigToCell(config: PoolConfig & { expACoeff?: bigint, e
         .storeAddress(config.protocolFeeAddress)
         .storeUint(config.lpFee, 16)
         .storeUint(config.protocolFee, 16)
+        .storeUint(config.bclpFee ?? defaultBCLPFee, 16)
+        .storeUint(config.bcprotocolFee ?? defaultBCProtocolFee, 16)
         .storeUint(expACoeff, expACoeff.toString(2).length)
         .storeUint(expBCoeff, expBCoeff.toString(2).length)
         .storeUint(baseUSDRate, baseUSDRate.toString(2).length)
@@ -936,6 +940,8 @@ export function poolBciStorageParser(src: Cell) {
         protocolFeeAddress: ds.loadMaybeAddress(),
         lpFee: ds.loadUintBig(16),
         protocolFee: ds.loadUintBig(16),
+        bclpFee: ds.loadUintBig(16),
+        bcprotocolFee: ds.loadUintBig(16),
         expACoeff: ds.loadUintBig(defaultACoeff.toString(2).length), // in tests only, it's dynamically
         expBCoeff: ds.loadUintBig(defaultBCoeff.toString(2).length), // in tests only, it's dynamically
         baseUSDRate: ds.loadUintBig(defaultBaseUSDRate.toString(2).length), // in tests only, it's dynamically
@@ -976,6 +982,8 @@ export class PoolBCI extends PoolBase {
             rightJettonAddress: result.stack.readAddress(),
             lpFee: result.stack.readBigNumber(),
             protocolFee: result.stack.readBigNumber(),
+            bclpFee: result.stack.readBigNumber(),
+            bcprotocolFee: result.stack.readBigNumber(),
             protocolFeeAddress: result.stack.readAddressOpt(),
             collectedLeftJettonProtocolFees: result.stack.readBigNumber(),
             collectedRightJettonProtocolFees: result.stack.readBigNumber(),
@@ -998,6 +1006,8 @@ export class PoolBCI extends PoolBase {
             rightJettonAddress: HOLE_ADDRESS,
             lpFee: 0n,
             protocolFee: 0n,
+            bclpFee: 0n,
+            bcprotocolFee: 0n,
             protocolFeeAddress: HOLE_ADDRESS as Address | null,
             collectedLeftJettonProtocolFees: 0n,
             collectedRightJettonProtocolFees: 0n,
