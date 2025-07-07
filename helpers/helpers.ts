@@ -82,6 +82,7 @@ export function preprocBuildContractsLocal(opts: {
     defaultBaseUSDRate?: bigint,
     defaultCTokenForCurve?: bigint,
     defaultSwapSide?: Number,
+    defaultSwapAddress?: string,
 }): void {
     process.env.DEX_TYPE = opts.dexType
     preprocBuildContracts({
@@ -101,6 +102,7 @@ export function preprocBuildContractsLocal(opts: {
             calcBaseUSDRateSize: opts.defaultBaseUSDRate ? opts.defaultBaseUSDRate.toString(2).length : undefined,
             defaultCTokenForCurve: opts.defaultCTokenForCurve ?? undefined,
             defaultSwapSide: opts.defaultSwapSide ?? undefined,
+            defaultSwapAddress: opts.defaultSwapAddress ?? undefined,
             version: parseVersion(),
             renderRouterAdminExtCalls: fs.existsSync(`contracts/router/pools/${opts.dexType}/ext_admin.fc`),
             renderPoolExtRouterCalls: fs.existsSync(`contracts/pool/pools/${opts.dexType}/ext_router.fc`),
