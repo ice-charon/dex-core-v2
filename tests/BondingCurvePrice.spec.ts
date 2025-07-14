@@ -10,7 +10,7 @@ import { expectBounced, expectEqAddress, expectNotBounced, getWalletContract, SL
 import { LPAccount, lpAccStorageParser } from '../wrappers/LPAccount';
 import { LPWallet, lpWalletStorageParser } from '../wrappers/LPWallet';
 import { PoolBCI as Pool, poolBciStorageParser, defaultBCLPFee, defaultBCProtocolFee, defaultACoeff, defaultBCoeff, defaultBaseUSDRate, defautlCurveT } from '../wrappers/Pool';
-import { Router, crossSwapPayload, provideLpPayload, routerStorageParser, swapPayload } from '../wrappers/Router';
+import { RouterBCI as Router, crossSwapPayload, provideLpPayload, routerStorageParser, swapPayload } from '../wrappers/Router';
 import { Vault, vaultStorageParser } from '../wrappers/Vault';
 
 function createMdGraphWithPath(params: GraphParamsWithoutPath) {
@@ -175,12 +175,11 @@ type SetPoolParams = {
     token2: SBCtrJettonMinter,
     debugGraph?: string,
     expectBounce?: boolean,
-    gas?: bigint,
-    newAmp?: bigint;
-    newRate?: bigint;
-    newW?: bigint;
+    bclpFee?: bigint;
+    bcprotocolFee?: bigint;
+    baseUSDRate?: bigint;
+    swapSide?: boolean;
     sideToken?: SBCtrJettonMinter;
-    setter?: SBCtrTreasury,
 };
 type UpdatePStatusParams = {
     sender?: SBCtrTreasury,
@@ -1210,6 +1209,49 @@ describe('Bonding Curve Price swap', () => {
 
         };
 
+        setPoolParams = async (params: SetPoolParams) => {
+            let router = params.router;
+            let sender = params.sender ?? deployer;
+            let routerWallet1 = await getWalletContract(bc, params.token1, router.address);
+            let routerWallet2 = await getWalletContract(bc, params.token2, router.address);
+
+            let pool = bc.openContract(Pool.createFromAddress(await router.getPoolAddress({
+                firstWalletAddress: routerWallet1.address,
+                secondWalletAddress: routerWallet2.address
+            })));
+
+            let oldPoolData = await pool.getPoolDataNoFail();
+
+            let msgResult = await router.sendSetParams(sender.getSender(), {
+                bclpFee: params.bclpFee,
+                bcprotocolFee: params.bcprotocolFee,
+                baseUSDRate: params.baseUSDRate,
+                swapSide: params.swapSide,
+                leftWalletAddress: routerWallet1.address,
+                rightWalletAddress: routerWallet2.address,
+            }, toNano(2));
+            if (params.debugGraph) {
+                createMdGraphWithPath({
+                    msgResult: msgResult,
+                    storageMap: storageMap,
+                    addressMap: addressMap,
+                    bracketMap: bracketMap,
+                    output: params.debugGraph
+                });
+            }
+            if (params.expectBounce) {
+                expectBounced(msgResult.events);
+
+                let poolData = await pool.getPoolDataNoFail();
+                expect(JSON.stringify(poolData)).toEqual(JSON.stringify(oldPoolData));
+            } else {
+                expectNotBounced(msgResult.events);
+                let poolData = await pool.getPoolData();
+                expect(JSON.stringify(poolData)).not.toBe(JSON.stringify(oldPoolData));
+            }
+
+        };
+
         updatePoolStatus = async (params: UpdatePStatusParams) => {
             let router = params.router;
             let sender = params.sender ?? deployer;
@@ -1568,6 +1610,62 @@ describe('Bonding Curve Price swap', () => {
                 referral: alice
             });
         });
+
+        it('should change swap side', async () => {
+            let setup = await setupDex({
+                createPool: {
+                    amount1: toNano(400000000),
+                    amount2: toNano(100000000),
+                }
+            });
+
+            let data = await (setup.pool as SBCtrPool).getPoolData();
+            const swapSide = !data.swapSide;
+
+            await setPoolParams({
+                ...setup,
+                swapSide: swapSide,
+                debugGraph: "set_pool_params"
+            });
+            data = await (setup.pool as SBCtrPool).getPoolData();
+            expect(data.swapSide).toEqual(swapSide);
+        });
+
+        it('should change base usd rate', async () => {
+            let setup = await setupDex({
+                createPool: {
+                    amount1: toNano(400000000),
+                    amount2: toNano(100000000),
+                }
+            });
+
+            await setPoolParams({
+                ...setup,
+                baseUSDRate: 8000000000000000n,
+                debugGraph: "set_pool_params"
+            });
+            let data = await (setup.pool as SBCtrPool).getPoolData();
+            expect(data.baseUSDRate).toEqual(8000000000000000n);
+        });
+
+        it('should change base bonding curve fees', async () => {
+            let setup = await setupDex({
+                createPool: {
+                    amount1: toNano(400000000),
+                    amount2: toNano(100000000),
+                }
+            });
+
+            await setPoolParams({
+                ...setup,
+                bclpFee: 10n,
+                bcprotocolFee: 400n,
+                debugGraph: "set_pool_params"
+            });
+            let data = await (setup.pool as SBCtrPool).getPoolData();
+            expect(data.bclpFee).toEqual(10n);
+            expect(data.bcprotocolFee).toEqual(400n);
+        });
     });
 
     describe('Dex', () => {
@@ -1706,8 +1804,8 @@ describe('Bonding Curve Price swap', () => {
                 createPool: {
                     amount1: toNano(100000000),
                     amount2: toNano(200000000),
-                    name1: "Token3",
-                    name2: "Token2",
+                    name1: "Token1",
+                    name2: "Token3",
                 }
             });
             let setup2 = await setupDex({
@@ -1715,7 +1813,7 @@ describe('Bonding Curve Price swap', () => {
                     amount1: toNano(100000000),
                     amount2: toNano(400000000),
                     name1: setup.name2,
-                    name2: "Token1",
+                    name2: "Token2",
                 },
                 routerId: 2
             });
@@ -1910,8 +2008,8 @@ describe('Bonding Curve Price swap', () => {
                 createPool: {
                     amount1: toNano(1000),
                     amount2: toNano(2000),
-                    name1: "Token3",
-                    name2: "Token2",
+                    name1: "Token1",
+                    name2: "Token3",
                 }
             });
             let setup2 = await setupDex({
@@ -1919,7 +2017,7 @@ describe('Bonding Curve Price swap', () => {
                     amount1: toNano(1000),
                     amount2: toNano(4000),
                     name1: setup.name2,
-                    name2: "Token1",
+                    name2: "Token2",
                 },
                 routerId: 2
             });
@@ -1944,8 +2042,8 @@ describe('Bonding Curve Price swap', () => {
                 createPool: {
                     amount1: toNano(100000000),
                     amount2: toNano(200000000),
-                    name1: "Token3",
-                    name2: "Token2",
+                    name1: "Token1",
+                    name2: "Token3",
                 }
             });
             let setup2 = await setupDex({
@@ -1953,7 +2051,7 @@ describe('Bonding Curve Price swap', () => {
                     amount1: toNano(1000),
                     amount2: toNano(4000),
                     name1: setup.name2,
-                    name2: "Token1",
+                    name2: "Token2",
                 },
                 routerId: 2
             });

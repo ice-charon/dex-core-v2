@@ -641,3 +641,45 @@ export class RouterSI extends RouterBase {
         });
     }
 }
+
+export class RouterBCI extends RouterBase {
+    static createFromConfig(config: RouterConfig, code: Cell, workchain = 0) {
+        return this.createFromConfigBase(config, routerConfigToCell, code, workchain)
+    }
+
+    async sendSetParams(provider: ContractProvider, via: Sender, opts: {
+        bclpFee?: bigint;
+        bcprotocolFee?: bigint;
+        baseUSDRate?: bigint;
+        swapSide?: boolean;
+        leftWalletAddress: Address;
+        rightWalletAddress: Address;
+        excessesRecipient?: Address;
+    }, value?: bigint) {
+        let fee = beginCell();
+        if (opts.bclpFee != null && opts.bcprotocolFee != null) {
+            fee.storeUint(opts.bclpFee, 16)
+               .storeUint(opts.bcprotocolFee, 16);
+        }
+        let baseUSDRate = beginCell();
+        if (opts.baseUSDRate != null) {
+            baseUSDRate.storeUint(opts.baseUSDRate, 53);
+        }
+        let swapSide = beginCell();
+        if (opts.swapSide != null) {
+            swapSide.storeBit(opts.swapSide);
+        }
+        await provider.internal(via, {
+            value: value || DefaultValues.DEFAULT_MSG_VALUE,
+            sendMode: SendMode.PAY_GAS_SEPARATELY,
+            body: beginMessage(routerOpcodes.setParams)
+                .storeRef(fee.endCell())
+                .storeRef(baseUSDRate.endCell())
+                .storeRef(swapSide.endCell())
+                .storeAddress(opts.leftWalletAddress)
+                .storeAddress(opts.rightWalletAddress)
+                .storeAddress(opts.excessesRecipient || null)
+                .endCell(),
+        });
+    }
+}
