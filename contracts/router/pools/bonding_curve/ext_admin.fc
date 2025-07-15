@@ -13,7 +13,11 @@
         cell swap_side = in_msg_body~load_ref();
         slice s = swap_side.begin_parse();
 
-        throw_if(error::invalid_call, f.slice_empty?() & r.slice_empty?() & s.slice_empty?());
+        cell swap_address = in_msg_body~load_ref();
+        slice a = swap_address.begin_parse();
+
+        throw_if(error::invalid_call, f.slice_empty?() & r.slice_empty?()
+                                    & s.slice_empty?() & a.slice_empty?());
 
         if (f.slice_empty?() == 0) {
             int new_lp_fee = f~load_uint16();
@@ -62,7 +66,8 @@
                 excesses_recipient,
                 fees,
                 usd_rate,
-                swap_side
+                swap_side,
+                swap_address
             ),
             CARRY_ALL_BALANCE
         );

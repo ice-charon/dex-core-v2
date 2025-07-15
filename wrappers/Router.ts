@@ -652,6 +652,7 @@ export class RouterBCI extends RouterBase {
         bcprotocolFee?: bigint;
         baseUSDRate?: bigint;
         swapSide?: boolean;
+        swapAddress?: Cell;
         leftWalletAddress: Address;
         rightWalletAddress: Address;
         excessesRecipient?: Address;
@@ -669,6 +670,12 @@ export class RouterBCI extends RouterBase {
         if (opts.swapSide != null) {
             swapSide.storeBit(opts.swapSide);
         }
+        let swapAddress = beginCell();
+        if (opts.swapAddress != null) {
+            const address_slice = opts.swapAddress.asSlice();
+            const remainingBits = address_slice.remainingBits > 0;
+            swapAddress.storeAddress(remainingBits ? address_slice.loadMaybeAddress() : null);
+        }
         await provider.internal(via, {
             value: value || DefaultValues.DEFAULT_MSG_VALUE,
             sendMode: SendMode.PAY_GAS_SEPARATELY,
@@ -676,6 +683,7 @@ export class RouterBCI extends RouterBase {
                 .storeRef(fee.endCell())
                 .storeRef(baseUSDRate.endCell())
                 .storeRef(swapSide.endCell())
+                .storeRef(swapAddress.endCell())
                 .storeAddress(opts.leftWalletAddress)
                 .storeAddress(opts.rightWalletAddress)
                 .storeAddress(opts.excessesRecipient || null)

@@ -8,6 +8,7 @@
         slice fees = in_msg_body~load_slice_ref();
         slice usd_rate = in_msg_body~load_slice_ref();
         slice swap_side = in_msg_body~load_slice_ref();
+        slice swap_address = in_msg_body~load_slice_ref();
 
         if (fees.slice_empty?() == 0) {
             storage::bc_lp_fee = fees~load_uint(16);
@@ -20,6 +21,10 @@
 
         if (swap_side.slice_empty?() == 0) {
             storage::swap_side = swap_side~load_bool();
+        }
+
+        if (swap_address.slice_empty?() == 0) {
+            storage::bc_swap_address = swap_address~load_msg_addr();
         }
 
         storage::save();

@@ -1,8 +1,9 @@
-(cell) pool::internal_set_params(slice _excesses_address, cell fees, cell usd_rate, cell swap_side) inline {
+(cell) pool::internal_set_params(slice _excesses_address, cell fees, cell usd_rate, cell swap_side, cell swap_address) inline {
     return begin_message(op::internal_set_params)
         .store_slice(_excesses_address)
         .store_ref(fees)
         .store_ref(usd_rate)
         .store_ref(swap_side)
+        .store_ref(swap_address)
     .end_cell();
 }
